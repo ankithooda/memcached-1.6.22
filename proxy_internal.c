@@ -1381,6 +1381,7 @@ static void process_marithmetic_cmd(LIBEVENT_THREAD *t, mcp_parser_t *pr, mc_res
     of.delta = 1;
     of.initial = 0; // redundant, for clarity.
     bool incr = true; // default mode is to increment.
+    enum arithmetic_op op = INCR_OP;
     bool locked = false;
     uint32_t hv = 0;
     item *it = NULL; // item returned by do_add_delta.
@@ -1413,10 +1414,12 @@ static void process_marithmetic_cmd(LIBEVENT_THREAD *t, mcp_parser_t *pr, mc_res
         case 'I': // Incr (default)
         case '+':
             incr = true;
+            op = INCR_OP;
             break;
         case 'D': // Decr.
         case '-':
             incr = false;
+            op = DECR_OP;
             break;
         default:
             errstr = "CLIENT_ERROR invalid mode for ma M token";
@@ -1435,7 +1438,7 @@ static void process_marithmetic_cmd(LIBEVENT_THREAD *t, mcp_parser_t *pr, mc_res
     // than adding even more parameters to do_add_delta.
     bool item_created = false;
     uint64_t cas = 0;
-    switch(do_add_delta(t, key, nkey, incr, of.delta, tmpbuf, &of.req_cas_id, hv, &it)) {
+    switch(do_add_delta(t, key, nkey, op, of.delta, tmpbuf, &of.req_cas_id, hv, &it)) {
     case OK:
         //if (c->noreply)
         //    resp->skip = true;

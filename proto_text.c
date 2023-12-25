@@ -1731,6 +1731,7 @@ static void process_marithmetic_command(conn *c, token_t *tokens, const size_t n
     of.delta = 1;
     of.initial = 0; // redundant, for clarity.
     bool incr = true; // default mode is to increment.
+    enum arithmetic_op op = INCR_OP;
     bool locked = false;
     uint32_t hv = 0;
     item *it = NULL; // item returned by do_add_delta.
@@ -1767,10 +1768,12 @@ static void process_marithmetic_command(conn *c, token_t *tokens, const size_t n
         case 'I': // Incr (default)
         case '+':
             incr = true;
+            op = INCR_OP;
             break;
         case 'D': // Decr.
         case '-':
             incr = false;
+            op = DECR_OP;
             break;
         default:
             errstr = "CLIENT_ERROR invalid mode for ma M token";
@@ -1788,7 +1791,7 @@ static void process_marithmetic_command(conn *c, token_t *tokens, const size_t n
     // return a referenced item if it exists, so we can modify it here, rather
     // than adding even more parameters to do_add_delta.
     bool item_created = false;
-    switch(do_add_delta(c->thread, key, nkey, incr, of.delta, tmpbuf, &of.req_cas_id, hv, &it)) {
+    switch(do_add_delta(c->thread, key, nkey, op, of.delta, tmpbuf, &of.req_cas_id, hv, &it)) {
     case OK:
         if (c->noreply)
             resp->skip = true;

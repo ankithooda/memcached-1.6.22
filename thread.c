@@ -964,7 +964,13 @@ enum delta_result_type add_delta(LIBEVENT_THREAD *t, const char *key,
 
     hv = hash(key, nkey);
     item_lock(hv);
-    ret = do_add_delta(t, key, nkey, incr, delta, buf, cas, hv, NULL);
+    enum arithmetic_op op;
+    if (incr) {
+        op = INCR_OP;
+    } else {
+        op = DECR_OP;
+    }
+    ret = do_add_delta(t, key, nkey, op, delta, buf, cas, hv, NULL);
     item_unlock(hv);
     return ret;
 }

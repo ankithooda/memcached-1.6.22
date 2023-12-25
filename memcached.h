@@ -296,6 +296,10 @@ enum delta_result_type {
     OK, NON_NUMERIC, EOM, DELTA_ITEM_NOT_FOUND, DELTA_ITEM_CAS_MISMATCH
 };
 
+enum arithmetic_op {
+    DECR_OP=0, INCR_OP=1, MULT_OP=2, DIV_OP=3
+};
+
 /** Time relative to server start. Smaller than time_t on 64-bit systems. */
 // TODO: Move to sub-header. needed in logger.h
 //typedef unsigned int rel_time_t;
@@ -939,7 +943,7 @@ extern void *ext_storage;
  */
 void do_accept_new_conns(const bool do_accept);
 enum delta_result_type do_add_delta(LIBEVENT_THREAD *t, const char *key,
-                                    const size_t nkey, const bool incr,
+                                    const size_t nkey, enum arithmetic_op op,
                                     const int64_t delta, char *buf,
                                     uint64_t *cas, const uint32_t hv,
                                     item **it_ret);
