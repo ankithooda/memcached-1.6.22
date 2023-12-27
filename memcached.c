@@ -2308,9 +2308,13 @@ enum delta_result_type do_add_delta(LIBEVENT_THREAD *t, const char *key, const s
         }
         //MEMCACHED_COMMAND_DECR(c->sfd, ITEM_key(it), it->nkey, value);
     } else if (op == MULT_OP) {
-        return OK;
+        value = value * delta;
     } else if (op == DIV_OP) {
-        return OK;
+        if (delta == 0) {
+            return DIV_BY_ZERO;
+        } else {
+            value = value / delta;
+        }
     } else {
         /* Should never get here. It means calling code sent an invalid
          arithmetic op type*/
@@ -2322,10 +2326,13 @@ enum delta_result_type do_add_delta(LIBEVENT_THREAD *t, const char *key, const s
     }
 
     pthread_mutex_lock(&t->stats.mutex);
-    if (op = INCR_OP) {
+    // TODO: Update stats code for mult and div
+    if (op == INCR_OP) {
         t->stats.slab_stats[ITEM_clsid(it)].incr_hits++;
-    } else {
+    } else if (op == DECR_OP) {
         t->stats.slab_stats[ITEM_clsid(it)].decr_hits++;
+    } else {
+        ;
     }
     pthread_mutex_unlock(&t->stats.mutex);
 

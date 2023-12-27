@@ -1842,6 +1842,10 @@ static void process_marithmetic_command(conn *c, token_t *tokens, const size_t n
         memcpy(p, "EX", 2);
         p += 2;
         break;
+    case DIV_BY_ZERO:
+        errstr = "Can not divide by Zero";
+        goto error;
+        break;
     }
 
     // final loop
@@ -2090,7 +2094,7 @@ static void process_touch_command(conn *c, token_t *tokens, const size_t ntokens
     }
 }
 
-static void process_arithmetic_command(conn *c, token_t *tokens, const size_t ntokens, const bool incr) {
+static void process_arithmetic_command(conn *c, token_t *tokens, const size_t ntokens, enum arithmetic_op op) {
     char temp[INCR_MAX_STORAGE_LEN];
     uint64_t delta;
     char *key;
@@ -2113,7 +2117,7 @@ static void process_arithmetic_command(conn *c, token_t *tokens, const size_t nt
         return;
     }
 
-    switch(add_delta(c->thread, key, nkey, incr, delta, temp, NULL)) {
+    switch(add_delta(c->thread, key, nkey, op, delta, temp, NULL)) {
     case OK:
         out_string(c, temp);
         break;
@@ -2125,14 +2129,19 @@ static void process_arithmetic_command(conn *c, token_t *tokens, const size_t nt
         break;
     case DELTA_ITEM_NOT_FOUND:
         pthread_mutex_lock(&c->thread->stats.mutex);
-        if (incr) {
+        if (op == INCR_OP) {
             c->thread->stats.incr_misses++;
-        } else {
+        } else if (op == DECR_OP) {
             c->thread->stats.decr_misses++;
+        } else {
+            ;
         }
         pthread_mutex_unlock(&c->thread->stats.mutex);
 
         out_string(c, "NOT_FOUND");
+        break;
+    case DIV_BY_ZERO:
+        out_string(c, "Can not divide by Zero");
         break;
     case DELTA_ITEM_CAS_MISMATCH:
         break; /* Should never get here */
@@ -2900,7 +2909,7 @@ void process_command_ascii(conn *c, char *command) {
         if (strcmp(tokens[COMMAND_TOKEN].value, "incr") == 0) {
 
             WANT_TOKENS_OR(ntokens, 4, 5);
-            process_arithmetic_command(c, tokens, ntokens, 1);
+            process_arithmetic_command(c, tokens, ntokens, INCR_OP);
         } else {
             out_string(c, "ERROR");
         }
@@ -2912,12 +2921,15 @@ void process_command_ascii(conn *c, char *command) {
         } else if (strcmp(tokens[COMMAND_TOKEN].value, "decr") == 0) {
 
             WANT_TOKENS_OR(ntokens, 4, 5);
-            process_arithmetic_command(c, tokens, ntokens, 0);
+            process_arithmetic_command(c, tokens, ntokens, DECR_OP);
 #ifdef MEMCACHED_DEBUG
         } else if (strcmp(tokens[COMMAND_TOKEN].value, "debugtime") == 0) {
             WANT_TOKENS_MIN(ntokens, 2);
             process_debugtime_command(c, tokens, ntokens);
 #endif
+        } else if (strcmp(tokens[COMMAND_TOKEN].value, "div") == 0) {
+            WANT_TOKENS_OR(ntokens, 4, 5);
+            process_arithmetic_command(c, tokens, ntokens , DIV_OP);
         } else {
             out_string(c, "ERROR");
         }
@@ -2936,6 +2948,9 @@ void process_command_ascii(conn *c, char *command) {
         WANT_TOKENS_OR(ntokens, 6, 7);
         process_update_command(c, tokens, ntokens, comm, false);
 
+    } else if (strcmp(tokens[COMMAND_TOKEN].value, "mult") == 0) {
+        WANT_TOKENS_OR(ntokens, 4, 5);
+        process_arithmetic_command(c, tokens, ntokens, MULT_OP);
     } else if (strcmp(tokens[COMMAND_TOKEN].value, "bget") == 0) {
         // ancient "binary get" command which isn't in any documentation, was
         // removed > 10 years ago, etc. Keeping for compatibility reasons but

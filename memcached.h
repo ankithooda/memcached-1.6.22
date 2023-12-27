@@ -293,7 +293,7 @@ enum store_item_type {
 };
 
 enum delta_result_type {
-    OK, NON_NUMERIC, EOM, DELTA_ITEM_NOT_FOUND, DELTA_ITEM_CAS_MISMATCH
+    OK, NON_NUMERIC, EOM, DELTA_ITEM_NOT_FOUND, DELTA_ITEM_CAS_MISMATCH, DIV_BY_ZERO
 };
 
 enum arithmetic_op {
@@ -989,7 +989,7 @@ void sidethread_conn_close(conn *c);
 
 /* Lock wrappers for cache functions that are called from main loop. */
 enum delta_result_type add_delta(LIBEVENT_THREAD *t, const char *key,
-                                 const size_t nkey, bool incr,
+                                 const size_t nkey, enum arithmetic_op op,
                                  const int64_t delta, char *buf,
                                  uint64_t *cas);
 void accept_new_conns(const bool do_accept);

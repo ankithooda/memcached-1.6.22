@@ -3,7 +3,7 @@
 
 #include "proxy.h"
 #include "storage.h"
-
+#include "memcached.h"
 #define PROXY_STORAGE_GET 0
 #define PROXY_STORAGE_MG 1
 #define _DO_CAS true
@@ -1659,10 +1659,10 @@ int mcplib_internal_run(lua_State *L, conn *c, mc_resp *top_resp, int coro_ref) 
             process_update_cmd(t, pr, resp, NREAD_REPLACE, _DO_CAS);
             break;
         case CMD_INCR:
-            process_arithmetic_cmd(t, pr, resp, true);
+            process_arithmetic_cmd(t, pr, resp, INCR_OP);
             break;
         case CMD_DECR:
-            process_arithmetic_cmd(t, pr, resp, false);
+            process_arithmetic_cmd(t, pr, resp, DECR_OP);
             break;
         case CMD_DELETE:
             process_delete_cmd(t, pr, resp);
